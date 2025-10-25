@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多媒体文件查看器</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #7209b7;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+            --success-color: #4cc9f0;
+            --warning-color: #f72585;
+            --border-radius: 12px;
+            --box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            --transition: all 0.3s ease;
+        }
+
+        .dark-mode {
+            --primary-color: #5e7af8;
+            --secondary-color: #4d1bc9;
+            --accent-color: #8a2be2;
+            --light-color: #1a1a2e;
+            --dark-color: #e6e6e6;
+            --success-color: #00d4ff;
+            --warning-color: #ff2d95;
+            --box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--light-color) 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            color: var(--dark-color);
+            transition: var(--transition);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: var(--light-color);
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            overflow: hidden;
+            margin-bottom: 2rem;
+            transition: var(--transition);
+        }
+
+        header {
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(30deg);
+        }
+
+        .upload-area {
+            padding: 2.5rem;
+            text-align: center;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            transition: var(--transition);
+        }
+
+        .upload-area.highlight {
+            background-color: rgba(67, 97, 238, 0.05);
+            border: 2px dashed var(--primary-color);
+        }
+
+        .upload-icon {
+            font-size: 4rem;
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+        }
+
+        .upload-text {
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(67, 97, 238, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background-color: var(--accent-color);
+        }
+
+        .btn-warning {
+            background-color: var(--warning-color);
+        }
+
+        .file-info {
+            padding: 1.5rem;
+            background-color: rgba(0,0,0,0.05);
+            border-radius: var(--border-radius);
+            margin: 1rem 2.5rem;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .file-name {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: var(--secondary-color);
+        }
+
+        .file-details {
+            display: flex;
+            justify-content: space-between;
+            color: var(--dark-color);
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .viewer-container {
+            padding: 2rem;
+            display: none;
+        }
+
+        .viewer-container.show {
+            display: block;
+            animation: slideUp 0.5s ease;
+        }
+
+        .audio-player {
+            width: 100%;
+            background: linear-gradient(to right, var(--primary-color), var(--accent-color));
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            color: white;
+            box-shadow: var(--box-shadow);
+        }
+
+        .audio-title {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+        }
+
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .play-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .play-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .time-display {
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 1.5rem;
+        }
+
+        .progress {
+            height: 100%;
+            background-color: white;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .visualizer {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: 150px;
+            gap: 4px;
+            margin-top: 1rem;
+        }
+
+        .bar {
+            width: 10px;
+            background-color: var(--success-color);
+            border-radius: 2px;
+            transition: height 0.2s ease;
+        }
+
+        .image-viewer {
+            text-align: center;
+            position: relative;
+        }
+
+        .image-container {
+            max-width: 100%;
+            max-height: 500px;
+            overflow: hidden;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            max-height: 500px;
+            object-fit: contain;
+            transition: transform 0.3s ease;
+            cursor: move;
+        }
+
+        .image-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .video-player {
+            width: 100%;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+        }
+
+        .video-player video {
+            width: 100%;
+            display: block;
+        }
+
+        .video-controls {
+            background-color: var(--dark-color);
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+        }
+
+        .text-viewer {
+            background-color: rgba(0,0,0,0.05);
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            box-shadow: var(--box-shadow);
+            margin-bottom: 1rem;
+        }
+
+        .text-controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .binary-viewer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--dark-color);
+        }
+
+        .binary-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            color: var(--accent-color);
+        }
+
+        .contact-info {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .contact-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .contact-btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        footer {
+            text-align: center;
+            color: var(--dark-color);
+            font-size: 0.9rem;
+            margin-top: auto;
+            padding: 1rem;
+            opacity: 0.8;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .container {
+                margin-bottom: 1rem;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .upload-area {
+                padding: 1.5rem;
+            }
+            
+            .file-info {
+                margin: 1rem;
+            }
+            
+            .viewer-container {
+                padding: 1rem;
+            }
+            
+            .contact-info {
+                flex-direction: column;
+                align-items: center;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>多媒体文件查看器</h1>
+            <p class="subtitle">支持音频、视频、图片和其他文件类型</p>
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+        </header>
+        
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <p class="upload-text">拖放文件到此处或点击上传</p>
+            <button class="btn" id="uploadBtn">
+                <i class="fas fa-file-upload"></i>
+                <span>选择文件</span>
+            </button>
+            <input type="file" id="fileInput" class="file-input">
+        </div>
+        
+        <div class="file-info" id="fileInfo">
+            <div class="file-name" id="fileName"></div>
+            <div class="file-details">
+                <span id="fileType"></span>
+                <span id="fileSize"></span>
+            </div>
+        </div>
+        
+        <div class="viewer-container" id="viewerContainer">
+            <!-- 音频播放器 -->
+            <div class="audio-player" id="audioPlayer">
+                <div class="audio-title" id="audioTitle">音频播放器</div>
+                <div class="audio-controls">
+                    <button class="play-btn" id="audioPlayBtn">▶</button>
+                    <div class="time-display">
+                        <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+                    </div>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress" id="audioProgress"></div>
+                </div>
+                <div class="visualizer" id="visualizer"></div>
+            </div>
+            
+            <!-- 图片查看器 -->
+            <div class="image-viewer" id="imageViewer">
+                <div class="image-container">
+                    <img id="imageDisplay" src="" alt="预览图片">
+                </div>
+                <div class="image-controls">
+                    <button class="btn" id="zoomInBtn">
+                        <i class="fas fa-search-plus"></i> 放大
+                    </button>
+                    <button class="btn" id="zoomOutBtn">
+                        <i class="fas fa-search-minus"></i> 缩小
+                    </button>
+                    <button class="btn" id="resetZoomBtn">
+                        <i class="fas fa-sync-alt"></i> 重置
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 视频播放器 -->
+            <div class="video-player" id="videoPlayer">
+                <video id="videoDisplay" controls>
+                    您的浏览器不支持视频播放
+                </video>
+                <div class="video-controls">
+                    <button class="btn" id="videoPlayBtn">
+                        <i class="fas fa-play"></i> 播放/暂停
+                    </button>
+                    <div class="time-display">
+                        <span id="videoCurrentTime">0:00</span> / <span id="videoDuration">0:00</span>
+                    </div>
+                    <button class="btn" id="fullscreenBtn">
+                        <i class="fas fa-expand"></i> 全屏
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 文本查看器 -->
+            <div class="text-viewer-container" id="textViewerContainer">
+                <div class="text-viewer" id="textViewer" contenteditable="true"></div>
+                <div class="text-controls">
+                    <button class="btn btn-secondary" id="saveTextBtn">
+                        <i class="fas fa-save"></i> 保存文件
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 二进制文件查看器 -->
+            <div class="binary-viewer" id="binaryViewer">
+                <div class="binary-icon">📄</div>
+                <h3>二进制文件</h3>
+                <p>此文件类型无法直接预览</p>
+                <p>文件大小: <span id="binarySize"></span></p>
+            </div>
+        </div>
+        
+        <div class="contact-info">
+            <a href="https://qm.qq.com/q/vlfGgP8k24" class="contact-btn" target="_blank">
+                <i class="fab fa-qq"></i> 加入QQ群
+            </a>
+            <a href="mailto:3530388417@qq.com" class="contact-btn">
+                <i class="fas fa-envelope"></i> 联系开发者
+            </a>
+        </div>
+    </div>
+    
+    <footer>
+        <p>© 2025 多媒体文件查看器 | 闲聊部队制作</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileType = document.getElementById('fileType');
+            const fileSize = document.getElementById('fileSize');
+            const viewerContainer = document.getElementById('viewerContainer');
+            const themeToggle = document.getElementById('themeToggle');
+            
+            // 音频相关元素
+            const audioPlayer = document.getElementById('audioPlayer');
+            const audioTitle = document.getElementById('audioTitle');
+            const audioPlayBtn = document.getElementById('audioPlayBtn');
+            const currentTime = document.getElementById('currentTime');
+            const duration = document.getElementById('duration');
+            const audioProgress = document.getElementById('audioProgress');
+            const visualizer = document.getElementById('visualizer');
+            
+            // 图片相关元素
+            const imageViewer = document.getElementById('imageViewer');
+            const imageDisplay = document.getElementById('imageDisplay');
+            const zoomInBtn = document.getElementById('zoomInBtn');
+            const zoomOutBtn = document.getElementById('zoomOutBtn');
+            const resetZoomBtn = document.getElementById('resetZoomBtn');
+            
+            // 视频相关元素
+            const videoPlayer = document.getElementById('videoPlayer');
+            const videoDisplay = document.getElementById('videoDisplay');
+            const videoPlayBtn = document.getElementById('videoPlayBtn');
+            const videoCurrentTime = document.getElementById('videoCurrentTime');
+            const videoDuration = document.getElementById('videoDuration');
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            
+            // 文本和二进制相关元素
+            const textViewerContainer = document.getElementById('textViewerContainer');
+            const textViewer = document.getElementById('textViewer');
+            const saveTextBtn = document.getElementById('saveTextBtn');
+            const binaryViewer = document.getElementById('binaryViewer');
+            const binarySize = document.getElementById('binarySize');
+            
+            // 当前文件引用
+            let currentFile = null;
+            
+            // 主题切换
+            themeToggle.addEventListener('click', function() {
+                document.body.classList.toggle('dark-mode');
+                if (document.body.classList.contains('dark-mode')) {
+                    themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+                } else {
+                    themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+                }
+            });
+            
+            // 音频可视化条
+            let bars = [];
+            for (let i = 0; i < 50; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.height = '10px';
+                visualizer.appendChild(bar);
+                bars.push(bar);
+            }
+            
+            // 上传按钮点击事件
+            uploadBtn.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // 文件输入变化事件
+            fileInput.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    handleFile(e.target.files[0]);
+                }
+            });
+            
+            // 拖放事件
+            uploadArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                uploadArea.classList.add('highlight');
+            });
+            
+            uploadArea.addEventListener('dragleave', function() {
+                uploadArea.classList.remove('highlight');
+            });
+            
+            uploadArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                uploadArea.classList.remove('highlight');
+                
+                if (e.dataTransfer.files.length > 0) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+            
+            // 处理文件函数
+            function handleFile(file) {
+                currentFile = file;
+                
+                // 显示文件信息
+                fileName.textContent = file.name;
+                fileType.textContent = getFileType(file);
+                fileSize.textContent = formatFileSize(file.size);
+                fileInfo.classList.add('show');
+                
+                // 显示查看器容器
+                viewerContainer.classList.add('show');
+                
+                // 隐藏所有查看器
+                hideAllViewers();
+                
+                // 根据文件类型显示相应的查看器
+                const fileExtension = getFileExtension(file.name);
+                
+                if (isAudioFile(fileExtension)) {
+                    showAudioViewer(file);
+                } else if (isImageFile(fileExtension)) {
+                    showImageViewer(file);
+                } else if (isVideoFile(fileExtension)) {
+                    showVideoViewer(file);
+                } else if (isTextFile(fileExtension)) {
+                    showTextViewer(file);
+                } else {
+                    showBinaryViewer(file);
+                }
+            }
+            
+            // 隐藏所有查看器
+            function hideAllViewers() {
+                audioPlayer.style.display = 'none';
+                imageViewer.style.display = 'none';
+                videoPlayer.style.display = 'none';
+                textViewerContainer.style.display = 'none';
+                binaryViewer.style.display = 'none';
+            }
+            
+            // 显示音频查看器
+            function showAudioViewer(file) {
+                audioPlayer.style.display = 'block';
+                audioTitle.textContent = file.name;
+                
+                const audio = new Audio(URL.createObjectURL(file));
+                
+                // 播放/暂停按钮事件
+                let isPlaying = false;
+                audioPlayBtn.addEventListener('click', function() {
+                    if (isPlaying) {
+                        audio.pause();
+                        audioPlayBtn.textContent = '▶';
+                    } else {
+                        audio.play();
+                        audioPlayBtn.textContent = '❚❚';
+                    }
+                    isPlaying = !isPlaying;
+                });
+                
+                // 更新进度条和时间
+                audio.addEventListener('loadedmetadata', function() {
+                    duration.textContent = formatTime(audio.duration);
+                });
+                
+                audio.addEventListener('timeupdate', function() {
+                    const progress = (audio.currentTime / audio.duration) * 100;
+                    audioProgress.style.width = `${progress}%`;
+                    currentTime.textContent = formatTime(audio.currentTime);
+                });
+                
+                // 点击进度条跳转
+                const progressBar = document.querySelector('.progress-bar');
+                progressBar.addEventListener('click', function(e) {
+                    const rect = progressBar.getBoundingClientRect();
+                    const percent = (e.clientX - rect.left) / rect.width;
+                    audio.currentTime = percent * audio.duration;
+                });
+                
+                // 音频可视化
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const analyser = audioContext.createAnalyser();
+                const source = audioContext.createMediaElementSource(audio);
+                
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+                
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                
+                function updateVisualizer() {
+                    requestAnimationFrame(updateVisualizer);
+                    analyser.getByteFrequencyData(dataArray);
+                    
+                    for (let i = 0; i < bars.length; i++) {
+                        const value = dataArray[Math.floor(i * bufferLength / bars.length)];
+                        const height = Math.max(10, value / 2);
+                        bars[i].style.height = `${height}px`;
+                        
+                        // 添加颜色变化效果
+                        const hue = (value / 255) * 120;
+                        bars[i].style.backgroundColor = `hsl(${hue}, 100%, 65%)`;
+                    }
+                }
+                
+                audio.addEventListener('play', function() {
+                    audioContext.resume().then(() => {
+                        updateVisualizer();
+                    });
+                });
+            }
+            
+            // 显示图片查看器
+            function showImageViewer(file) {
+                imageViewer.style.display = 'block';
+                imageDisplay.src = URL.createObjectURL(file);
+                
+                let scale = 1;
+                let isDragging = false;
+                let startX, startY, translateX = 0, translateY = 0;
+                
+                // 放大按钮
+                zoomInBtn.addEventListener('click', function() {
+                    scale += 0.1;
+                    updateImageTransform();
+                });
+                
+                // 缩小按钮
+                zoomOutBtn.addEventListener('click', function() {
+                    scale = Math.max(0.1, scale - 0.1);
+                    updateImageTransform();
+                });
+                
+                // 重置按钮
+                resetZoomBtn.addEventListener('click', function() {
+                    scale = 1;
+                    translateX = 0;
+                    translateY = 0;
+                    updateImageTransform();
+                });
+                
+                // 图片拖动功能
+                imageDisplay.addEventListener('mousedown', startDrag);
+                imageDisplay.addEventListener('touchstart', startDrag);
+                
+                function startDrag(e) {
+                    e.preventDefault();
+                    isDragging = true;
+                    
+                    if (e.type === 'mousedown') {
+                        startX = e.clientX - translateX;
+                        startY = e.clientY - translateY;
+                        document.addEventListener('mousemove', drag);
+                        document.addEventListener('mouseup', stopDrag);
+                    } else {
+                        startX = e.touches[0].clientX - translateX;
+                        startY = e.touches[0].clientY - translateY;
+                        document.addEventListener('touchmove', drag);
+                        document.addEventListener('touchend', stopDrag);
+                    }
+                }
+                
+                function drag(e) {
+                    if (!isDragging) return;
+                    
+                    if (e.type === 'mousemove') {
+                        translateX = e.clientX - startX;
+                        translateY = e.clientY - startY;
+                    } else {
+                        translateX = e.touches[0].clientX - startX;
+                        translateY = e.touches[0].clientY - startY;
+                    }
+                    
+                    updateImageTransform();
+                }
+                
+                function stopDrag() {
+                    isDragging = false;
+                    document.removeEventListener('mousemove', drag);
+                    document.removeEventListener('mouseup', stopDrag);
+                    document.removeEventListener('touchmove', drag);
+                    document.removeEventListener('touchend', stopDrag);
+                }
+                
+                function updateImageTransform() {
+                    imageDisplay.style.transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
+                }
+            }
+            
+            // 显示视频查看器
+            function showVideoViewer(file) {
+                videoPlayer.style.display = 'block';
+                videoDisplay.src = URL.createObjectURL(file);
+                
+                // 播放/暂停按钮
+                videoPlayBtn.addEventListener('click', function() {
+                    if (videoDisplay.paused) {
+                        videoDisplay.play();
+                    } else {
+                        videoDisplay.pause();
+                    }
+                });
+                
+                // 更新时间显示
+                videoDisplay.addEventListener('loadedmetadata', function() {
+                    videoDuration.textContent = formatTime(videoDisplay.duration);
+                });
+                
+                videoDisplay.addEventListener('timeupdate', function() {
+                    videoCurrentTime.textContent = formatTime(videoDisplay.currentTime);
+                });
+                
+                // 全屏按钮
+                fullscreenBtn.addEventListener('click', function() {
+                    if (videoDisplay.requestFullscreen) {
+                        videoDisplay.requestFullscreen();
+                    } else if (videoDisplay.mozRequestFullScreen) {
+                        videoDisplay.mozRequestFullScreen();
+                    } else if (videoDisplay.webkitRequestFullscreen) {
+                        videoDisplay.webkitRequestFullscreen();
+                    } else if (videoDisplay.msRequestFullscreen) {
+                        videoDisplay.msRequestFullscreen();
+                    }
+                });
+            }
+            
+            // 显示文本查看器
+            function showTextViewer(file) {
+                textViewerContainer.style.display = 'block';
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    textViewer.textContent = e.target.result;
+                };
+                reader.readAsText(file);
+                
+                // 保存文本文件
+                saveTextBtn.addEventListener('click', function() {
+                    const blob = new Blob([textViewer.textContent], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = currentFile.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                });
+            }
+            
+            // 显示二进制文件查看器
+            function showBinaryViewer(file) {
+                binaryViewer.style.display = 'block';
+                binarySize.textContent = formatFileSize(file.size);
+            }
+            
+            // 辅助函数
+            function getFileExtension(filename) {
+                return filename.split('.').pop().toLowerCase();
+            }
+            
+            function getFileType(file) {
+                const extension = getFileExtension(file.name);
+                
+                if (isAudioFile(extension)) return '音频文件';
+                if (isImageFile(extension)) return '图片文件';
+                if (isVideoFile(extension)) return '视频文件';
+                if (isTextFile(extension)) return '文本文件';
+                
+                return '其他文件';
+            }
+            
+            function isAudioFile(extension) {
+                const audioExtensions = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'];
+                return audioExtensions.includes(extension);
+            }
+            
+            function isImageFile(extension) {
+                const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'ico'];
+                return imageExtensions.includes(extension);
+            }
+            
+            function isVideoFile(extension) {
+                const videoExtensions = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'];
+                return videoExtensions.includes(extension);
+            }
+            
+            function isTextFile(extension) {
+                const textExtensions = ['txt', 'md', 'html', 'css', 'js', 'json', 'xml', 'csv', 'log'];
+                return textExtensions.includes(extension);
+            }
+            
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            }
+        });
+    </script>
+</body>
+</html>
